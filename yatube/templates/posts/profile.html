@@ -3,8 +3,13 @@
 {% block title %} Профайл пользователя {{ author.get_full_name }}{% endblock %}
 {% block content %}
   <div class="container py-5">        
-    <h1> Все посты пользователя {{ author.get_full_name }} </h1>
-    <h3> Всего постов: {{ counter }} </h3>   
+    <div class="mb-5">
+      <h1> Все посты пользователя {{ author.get_full_name }} </h1>
+      <h3> Всего постов: {{ counter }} </h3> 
+      {% if user != author %}
+        {% include 'includes/subscription.html' %}
+      {% endif %}
+    </div>  
     {% for post in page_obj %}
       <article>
         <ul>
@@ -27,6 +32,6 @@
       {% endif %}
       {% if not forloop.last %}<hr>{% endif %}
     {% endfor %}
-    {% include 'includes/paginator.html' %} 
+    {% include 'includes/paginator.html' %}
   </div>
 {% endblock %}

@@ -6,7 +6,7 @@ from django.views.decorators.cache import cache_page
 from yatube.settings import P_PER_L
 
 from .forms import CommentForm, PostForm
-from .models import Group, Post, User
+from .models import Group, Post, Follow, User
 
 
 def paginator_func(posts, per_list, request):
@@ -25,6 +25,7 @@ def index(request):
     page_obj = paginator_func(posts, P_PER_L, request)
     context = {
         'page_obj': page_obj,
+        'index': 'index',
     }
     return render(request, template, context)
 
@@ -49,10 +50,18 @@ def profile(request, username):
     posts = user.post.all()
     counter = posts.count()
     page_obj = paginator_func(posts, P_PER_L, request)
+    following = False
+    if request.user.is_authenticated:
+        subscriptions = request.user.follower.values()
+        list_subscriptions = [
+            subscripted['author_id'] for subscripted in subscriptions
+        ]
+        following = True if user.id in list_subscriptions else False
     context = {
         'author': user,
         'counter': counter,
         'page_obj': page_obj,
+        'following': following,
     }
     return render(request, template, context)
 
@@ -121,3 +130,52 @@ def add_comment(request, post_id):
         comment.post = post
         comment.save()
     return redirect('posts:post_detail', post_id)
+
+
+@login_required
+def follow_index(request):
+    """Страница с постами авторов, на которых подписан user."""
+    template = 'posts/follow.html'
+    followings = request.user.follower.values()
+    list_followings = [following['author_id'] for following in followings]
+    posts = Post.objects.filter(author_id__in=list_followings)
+    page_obj = paginator_func(posts, P_PER_L, request)
+    context = {
+        'page_obj': page_obj,
+        'follow': 'follow',
+    }
+    return render(request, template, context)
+
+
+@login_required
+def profile_follow(request, username):
+    """Подписка на автора."""
+    post_author = User.objects.get(username=username)
+    if request.user != post_author:
+        subscriptions = request.user.follower.values()
+        list_subscriptions = [
+            subscripted['author_id'] for subscripted in subscriptions
+        ]
+        if post_author.id not in list_subscriptions:
+            subscription = Follow(user=request.user, author=post_author)
+            subscription.save()
+            return redirect('posts:profile', username=username)
+        return redirect('posts:profile', username=username)
+    return redirect('posts:profile', username=username)
+
+
+@login_required
+def profile_unfollow(request, username):
+    """Отписаться от автора."""
+    post_author = User.objects.get(username=username)
+    if request.user != post_author:
+        subscriptions = request.user.follower.values()
+        list_subscriptions = [
+            subscripted['author_id'] for subscripted in subscriptions
+        ]
+        if post_author.id in list_subscriptions:
+            unsubscribe = request.user.follower.get(author=post_author)
+            unsubscribe.delete()
+            return redirect('posts:profile', username=username)
+        return redirect('posts:profile', username=username)
+    return redirect('posts:profile', username=username)

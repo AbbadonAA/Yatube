@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load thumbnail %}
-  {% block title %} Последние обновления на сайте {% endblock %}
+  {% block title %} Посты избранных авторов {% endblock %}
     {% block content %}
-    <div class="container py-5">
-      {% include 'includes/switcher.html' %}  
+      <div class="container py-5">
+        {% include 'includes/switcher.html' %}  
         {% for post in page_obj %}
           <article>
             <ul>
