@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Технологии{% endblock %}
+{% block content %}
+
+<div class="bg-white py-1">
+  <div class="container py-3">
+    <div class="row align-items-center mb-5">      
+      <div class="col-lg-4 order-2 order-lg-1">
+        <h1 class="display-4">Технологии</h1>
+        <p class="lead mb-0">Изучаемые активно, но не без труда...</p>
+      </div>
+      <div class="col-lg-8 px-5 mx-auto order-1 order-lg-2">
+      {% comment %} <div class="col-lg-6"> {% endcomment %}
+        <!-- Accordion -->
+        <div id="accordionExample" class="accordion shadow">
+
+          <!-- Accordion item 1 -->
+          <div class="card">
+            <div id="headingOne" class="card-header bg-white shadow-sm border-0">
+              <h6 class="mb-0 font-weight-bold"><a href="#" data-toggle="collapse" data-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne" class="d-block position-relative text-dark text-uppercase collapsible-link py-2">Python 3.9.6</a></h6>
+            </div>
+            <div id="collapseOne" aria-labelledby="headingOne" data-parent="#accordionExample" class="collapse">
+              <div class="card-body p-5">
+                <p class="font-weight-light m-0">
+                  Освоен основной синтаксис Python, но требуется углубление знаний в части подключаемых библиотек, полного понимания работы классов, аннотации типов. 
+                  Да и практики нужно гораздо больше, чтобы почувствовать уверенность.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion item 2 -->
+          <div class="card">
+            <div id="headingTwo" class="card-header bg-white shadow-sm border-0">
+              <h6 class="mb-0 font-weight-bold"><a href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo" class="d-block position-relative collapsed text-dark text-uppercase collapsible-link py-2">Django 2.2.6</a></h6>
+            </div>
+            <div id="collapseTwo" aria-labelledby="headingTwo" data-parent="#accordionExample" class="collapse">
+              <div class="card-body p-5">
+                <p class="font-weight-light m-0">
+                  В данном фреймворке освоены основные элементы, использованные при создании данного портала: внесение изменений в settings, корректное указание путей в urls, 
+                  создание функций для рендера страниц во views, подключение templates, а также bootstrap и стилей CSS в static, работа с базой данных sqlite3, настройка admin.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion item 3 -->
+          <div class="card">
+            <div id="headingThree" class="card-header bg-white shadow-sm border-0">
+              <h6 class="mb-0 font-weight-bold"><a href="#" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree" class="d-block position-relative collapsed text-dark text-uppercase collapsible-link py-2">Bootstrap 4 and CSS</a></h6>
+            </div>
+            <div id="collapseThree" aria-labelledby="headingThree" data-parent="#accordionExample" class="collapse">
+              <div class="card-body p-5">
+                <p class="font-weight-light m-0">Пока что я умею только подключать bootstrap со всеми основными компонентами и использовать элементы готовых шаблонов страниц.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion item 4 -->
+          <div class="card">
+            <div id="headingThree" class="card-header bg-white shadow-sm border-0">
+              <h6 class="mb-0 font-weight-bold"><a href="#" data-toggle="collapse" data-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour" class="d-block position-relative collapsed text-dark text-uppercase collapsible-link py-2">HTML5</a></h6>
+            </div>
+            <div id="collapseFour" aria-labelledby="headingFour" data-parent="#accordionExample" class="collapse">
+              <div class="card-body p-5">
+                <p class="font-weight-light m-0">Освоена элементарная верстка с выводом в шаблон данных из view-функций и view-классов Django.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion item 5 -->
+          <div class="card">
+            <div id="headingThree" class="card-header bg-white shadow-sm border-0">
+              <h6 class="mb-0 font-weight-bold"><a href="#" data-toggle="collapse" data-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive" class="d-block position-relative collapsed text-dark text-uppercase collapsible-link py-2">SQL</a></h6>
+            </div>
+            <div id="collapseFive" aria-labelledby="headingFive" data-parent="#accordionExample" class="collapse">
+              <div class="card-body p-5">
+                <p class="font-weight-light m-0">
+                  Только начал изучать SQL (PostgreSQL, SQLite). Пока что не хватает времени глубоко погрузиться в работу с базами данных, 
+                  чтобы написать о каких-то конкретных достижениях. Тем не менее, параллельно с основной программой обучения я планирую серьёзно 
+                  разобраться с PostgreSQL, а в перспективе - пройти отдельные курсы.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion item 6 -->
+          <div class="card">
+            <div id="headingThree" class="card-header bg-white shadow-sm border-0">
+              <h6 class="mb-0 font-weight-bold"><a href="#" data-toggle="collapse" data-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix" class="d-block position-relative collapsed text-dark text-uppercase collapsible-link py-2">GIT</a></h6>
+            </div>
+            <div id="collapseSix" aria-labelledby="headingSix" data-parent="#accordionExample" class="collapse">
+              <div class="card-body p-5">
+                <p class="font-weight-light m-0">
+                При разработке учебных проектов стараюсь постоянно пользоваться возможностями GIT, чтобы привыкнуть к работе с версиями. 
+                Часто использую commit, чтобы была возможность откатить изменения. Новые приложения в проекте разрабатываю в отдельных ветках, 
+                а после тестирования работоспособности вливаю в main/master (merge, rebase).
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+{% endblock %} 
