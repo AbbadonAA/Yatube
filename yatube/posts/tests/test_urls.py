@@ -28,10 +28,9 @@ class PostsURLTests(TestCase):
         self.author = Client()
         self.authorized_client.force_login(self.user)
         self.author.force_login(self.user_author)
-        self.post = PostsURLTests.post
-        self.group = PostsURLTests.group
         self.url_templates = {
             '/': ('posts/index.html', 'all'),
+            '/follow/': ('posts/follow.html', 'auth'),
             f'/group/{self.group.slug}/': ('posts/group_list.html', 'all'),
             f'/profile/{self.user.username}/': ('posts/profile.html', 'all'),
             '/create/': ('posts/create_post.html', 'auth'),

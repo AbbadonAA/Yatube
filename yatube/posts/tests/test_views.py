@@ -46,9 +46,6 @@ class PostsViewsTests(TestCase):
         self.author = Client()
         self.authorized_client.force_login(self.user)
         self.author.force_login(self.user_author)
-        self.post = PostsViewsTests.post
-        self.group = PostsViewsTests.group
-        self.comments = PostsViewsTests.comments
         self.names_templates = {
             reverse('posts:index'): ('posts/index.html', 'all', 'show_cont'),
             reverse('posts:group_list', kwargs={'slug': self.group.slug}):
@@ -241,3 +238,162 @@ class PaginatorViewsTests(TestCase):
             else:
                 response = self.client.get(reverse_name)
                 check_paginator(response)
+
+
+class SubscriptionsViewsTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user1 = User.objects.create_user(username='First_User')
+        cls.user2 = User.objects.create_user(username='Second_User')
+        cls.user3 = User.objects.create_user(username='Third_User')
+        cls.post = Post.objects.create(
+            author=cls.user1,
+            text='Тестовый текст поста',
+            group=None,
+        )
+        cls.post2 = Post.objects.create(
+            author=cls.user2,
+            text='Второй пост',
+            group=None,
+        )
+
+    def setUp(self):
+        self.guest_client = Client()
+        self.authorized_client1 = Client()
+        self.authorized_client2 = Client()
+        self.authorized_client3 = Client()
+        self.authorized_client1.force_login(self.user1)
+        self.authorized_client2.force_login(self.user2)
+        self.authorized_client3.force_login(self.user3)
+        self.url_follow1 = reverse(
+            'posts:profile_follow',
+            kwargs={'username': self.user1.username}
+        )
+        self.url_follow2 = reverse(
+            'posts:profile_follow',
+            kwargs={'username': self.user2.username}
+        )
+        self.url_follow3 = reverse(
+            'posts:profile_follow',
+            kwargs={'username': self.user3.username}
+        )
+        self.url_unfollow1 = reverse(
+            'posts:profile_unfollow',
+            kwargs={'username': self.user1.username}
+        )
+        self.url_unfollow2 = reverse(
+            'posts:profile_unfollow',
+            kwargs={'username': self.user2.username}
+        )
+
+    def tearDown(self):
+        cache.clear()
+
+    def check_subscriptions(
+        self, response, user1_followers, user1_followings,
+        user2_followers, user2_followings, user3_followers,
+        user3_followings, author
+    ):
+        with self.subTest(response=response):
+            self.assertRedirects(response, f'/profile/{author}/')
+            self.assertEqual(self.user1.follower.count(), user1_followers)
+            self.assertEqual(self.user1.following.count(), user1_followings)
+            self.assertEqual(self.user2.follower.count(), user2_followers)
+            self.assertEqual(self.user2.following.count(), user2_followings)
+            self.assertEqual(self.user3.follower.count(), user3_followers)
+            self.assertEqual(self.user3.following.count(), user3_followings)
+
+    def test_views_subscriptions_users_can_follow_unfollow(self):
+        """Проверка корректной работы подиски / отписки."""
+        user1_followers = self.user1.follower.count()
+        user1_followings = self.user1.following.count()
+        user2_followers = self.user2.follower.count()
+        user2_followings = self.user2.following.count()
+        user3_followers = self.user3.follower.count()
+        user3_followings = self.user3.following.count()
+        # Первый user подписывается на второго.
+        response = self.authorized_client1.get(self.url_follow2)
+        author = self.user2.username
+        user1_followers += 1
+        user2_followings += 1
+        self.check_subscriptions(
+            response, user1_followers, user1_followings,
+            user2_followers, user2_followings, user3_followers,
+            user3_followings, author
+        )
+        # Первый user подписывается на самого себя - нет изменений.
+        response = self.authorized_client1.get(self.url_follow1)
+        author = self.user1.username
+        self.check_subscriptions(
+            response, user1_followers, user1_followings,
+            user2_followers, user2_followings, user3_followers,
+            user3_followings, author
+        )
+        # Первый user повторно подписывается на второго - нет изменений.
+        response = self.authorized_client1.get(self.url_follow2)
+        author = self.user2.username
+        self.check_subscriptions(
+            response, user1_followers, user1_followings,
+            user2_followers, user2_followings, user3_followers,
+            user3_followings, author
+        )
+        # Второй user подписывается на первого.
+        response = self.authorized_client2.get(self.url_follow1)
+        author = self.user1.username
+        user1_followings += 1
+        user2_followers += 1
+        self.check_subscriptions(
+            response, user1_followers, user1_followings,
+            user2_followers, user2_followings, user3_followers,
+            user3_followings, author
+        )
+        # Второй user подписывается на третьего.
+        response = self.authorized_client2.get(self.url_follow3)
+        author = self.user3.username
+        user2_followers += 1
+        user3_followings += 1
+        self.check_subscriptions(
+            response, user1_followers, user1_followings,
+            user2_followers, user2_followings, user3_followers,
+            user3_followings, author
+        )
+        # Второй user отписывается от первого.
+        response = self.authorized_client2.get(self.url_unfollow1)
+        author = self.user1.username
+        user1_followings -= 1
+        user2_followers -= 1
+        self.check_subscriptions(
+            response, user1_followers, user1_followings,
+            user2_followers, user2_followings, user3_followers,
+            user3_followings, author
+        )
+        # Второй user повторно отписывается от первого - нет изменений.
+        response = self.authorized_client2.get(self.url_unfollow1)
+        author = self.user1.username
+        self.check_subscriptions(
+            response, user1_followers, user1_followings,
+            user2_followers, user2_followings, user3_followers,
+            user3_followings, author
+        )
+        # Второй user отписывается от самого себя - нет изменений.
+        response = self.authorized_client2.get(self.url_unfollow2)
+        author = self.user2.username
+        self.check_subscriptions(
+            response, user1_followers, user1_followings,
+            user2_followers, user2_followings, user3_followers,
+            user3_followings, author
+        )
+
+    def test_views_post_in_follow_list_of_subscribers(self):
+        self.authorized_client2.get(self.url_follow1)
+        self.authorized_client3.get(self.url_follow2)
+        response = self.authorized_client2.get(reverse('posts:follow_index'))
+        page = response.context['page_obj']
+        self.assertIn(self.post, page)
+        self.assertNotIn(self.post2, page)
+        response = self.authorized_client3.get(reverse('posts:follow_index'))
+        page = response.context['page_obj']
+        with self.subTest(response=response):
+            self.assertNotIn(self.post, page)
+            self.assertIn(self.post2, page)

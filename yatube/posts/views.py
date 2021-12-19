@@ -6,7 +6,7 @@ from django.views.decorators.cache import cache_page
 from yatube.settings import P_PER_L
 
 from .forms import CommentForm, PostForm
-from .models import Group, Post, Follow, User
+from .models import Follow, Group, Post, User
 
 
 def paginator_func(posts, per_list, request):

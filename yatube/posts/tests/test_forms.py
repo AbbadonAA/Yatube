@@ -49,8 +49,6 @@ class PostsFormsTests(TestCase):
         self.nonauth_user = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
-        self.post = PostsFormsTests.post
-        self.group = PostsFormsTests.group
 
     def test_forms_create_post_for_post_with_group_img(self):
         """Тестирование формы create_post - группа и картинка."""
