@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %} Пост {{ title|truncatechars:30 }}{% endblock %}
+{% block title %} Пост {{ post.text|truncatechars:30 }}{% endblock %}
 {% load thumbnail %}
 {% block content %}
   <div class='container py-5'>

@@ -53,10 +53,7 @@ def profile(request, username):
     following = False
     if request.user.is_authenticated:
         subscriptions = request.user.follower.values()
-        list_subscriptions = [
-            subscripted['author_id'] for subscripted in subscriptions
-        ]
-        following = True if user.id in list_subscriptions else False
+        following = subscriptions.filter(author_id=user.id).exists()
     context = {
         'author': user,
         'counter': counter,
@@ -71,13 +68,11 @@ def post_detail(request, post_id):
     template = 'posts/post_detail.html'
     post = get_object_or_404(Post, id=post_id)
     counter = post.author.post.count()
-    title = post.text
     form = CommentForm(request.POST or None)
     comments = post.comments.all()
     context = {
         'post': post,
         'counter': counter,
-        'title': title,
         'form': form,
         'comments': comments,
     }
@@ -136,9 +131,7 @@ def add_comment(request, post_id):
 def follow_index(request):
     """Страница с постами авторов, на которых подписан user."""
     template = 'posts/follow.html'
-    followings = request.user.follower.values()
-    list_followings = [following['author_id'] for following in followings]
-    posts = Post.objects.filter(author_id__in=list_followings)
+    posts = Post.objects.filter(author__following__user=request.user)
     page_obj = paginator_func(posts, P_PER_L, request)
     context = {
         'page_obj': page_obj,
@@ -150,16 +143,13 @@ def follow_index(request):
 @login_required
 def profile_follow(request, username):
     """Подписка на автора."""
-    post_author = User.objects.get(username=username)
-    if request.user != post_author:
-        subscriptions = request.user.follower.values()
-        list_subscriptions = [
-            subscripted['author_id'] for subscripted in subscriptions
-        ]
-        if post_author.id not in list_subscriptions:
-            subscription = Follow(user=request.user, author=post_author)
-            subscription.save()
-            return redirect('posts:profile', username=username)
+    post_author = get_object_or_404(User, username=username)
+    if request.user == post_author:
+        return redirect('posts:profile', username=username)
+    subscriptions = request.user.follower.values()
+    if not subscriptions.filter(author_id=post_author.id).exists():
+        subscription = Follow(user=request.user, author=post_author)
+        subscription.save()
         return redirect('posts:profile', username=username)
     return redirect('posts:profile', username=username)
 
@@ -167,15 +157,12 @@ def profile_follow(request, username):
 @login_required
 def profile_unfollow(request, username):
     """Отписаться от автора."""
-    post_author = User.objects.get(username=username)
-    if request.user != post_author:
-        subscriptions = request.user.follower.values()
-        list_subscriptions = [
-            subscripted['author_id'] for subscripted in subscriptions
-        ]
-        if post_author.id in list_subscriptions:
-            unsubscribe = request.user.follower.get(author=post_author)
-            unsubscribe.delete()
-            return redirect('posts:profile', username=username)
+    post_author = get_object_or_404(User, username=username)
+    if request.user == post_author:
+        return redirect('posts:profile', username=username)
+    subscriptions = request.user.follower.values()
+    if subscriptions.filter(author_id=post_author.id).exists():
+        unsubscribe = request.user.follower.get(author=post_author)
+        unsubscribe.delete()
         return redirect('posts:profile', username=username)
     return redirect('posts:profile', username=username)

@@ -143,7 +143,6 @@ class PostsViewsTests(TestCase):
         self.assertEqual(post.pub_date, self.post.pub_date)
         self.assertEqual(post.author, self.post.author)
         self.assertEqual(post.image, self.post.image)
-        self.assertEqual(response.context.get('title'), self.post.text)
         self.assertEqual(response.context.get('counter'),
                          self.post.author.post.count())
         self.assertEqual(post.comments.count(), Comment.objects.count())
