@@ -249,6 +249,24 @@ class PostsFormsTests(TestCase):
                 )
                 self.assertEqual(Post.objects.count(), posts_count)
 
+
+class CommentFormsTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create(username='Test_User')
+        cls.post = Post.objects.create(
+            author=cls.user,
+            text='Тестовый текст поста',
+            group=None,
+            image=None,
+        )
+
+    def setUp(self):
+        self.nonauth_user = Client()
+        self.authorized_client = Client()
+        self.authorized_client.force_login(self.user)
+
     def test_comment_nonauth_user_redirects(self):
         """Проверка комментариев - редирект неавторизованного пользователя."""
         login = reverse('users:login')

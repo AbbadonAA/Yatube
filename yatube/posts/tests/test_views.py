@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from yatube.settings import P_PER_L
 
-from ..models import Comment, Group, Post, User
+from ..models import Comment, Follow, Group, Post, User
 
 
 class PostsViewsTests(TestCase):
@@ -243,156 +243,133 @@ class SubscriptionsViewsTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user1 = User.objects.create_user(username='First_User')
-        cls.user2 = User.objects.create_user(username='Second_User')
-        cls.user3 = User.objects.create_user(username='Third_User')
-        cls.post = Post.objects.create(
-            author=cls.user1,
-            text='Тестовый текст поста',
-            group=None,
-        )
-        cls.post2 = Post.objects.create(
-            author=cls.user2,
-            text='Второй пост',
-            group=None,
-        )
+        cls.subscriber = User.objects.create_user(username='Subscriber')
+        cls.post_author = User.objects.create_user(username='Author')
+        cls.other_user = User.objects.create_user(username='Other_user')
 
     def setUp(self):
-        self.guest_client = Client()
         self.authorized_client1 = Client()
         self.authorized_client2 = Client()
         self.authorized_client3 = Client()
-        self.authorized_client1.force_login(self.user1)
-        self.authorized_client2.force_login(self.user2)
-        self.authorized_client3.force_login(self.user3)
-        self.url_follow1 = reverse(
-            'posts:profile_follow',
-            kwargs={'username': self.user1.username}
-        )
+        self.authorized_client1.force_login(self.subscriber)
+        self.authorized_client2.force_login(self.post_author)
+        self.authorized_client3.force_login(self.other_user)
         self.url_follow2 = reverse(
             'posts:profile_follow',
-            kwargs={'username': self.user2.username}
-        )
-        self.url_follow3 = reverse(
-            'posts:profile_follow',
-            kwargs={'username': self.user3.username}
-        )
-        self.url_unfollow1 = reverse(
-            'posts:profile_unfollow',
-            kwargs={'username': self.user1.username}
+            kwargs={'username': self.post_author.username}
         )
         self.url_unfollow2 = reverse(
             'posts:profile_unfollow',
-            kwargs={'username': self.user2.username}
+            kwargs={'username': self.post_author.username}
         )
 
     def tearDown(self):
         cache.clear()
 
-    def check_subscriptions(
-        self, response, user1_followers, user1_followings,
-        user2_followers, user2_followings, user3_followers,
-        user3_followings, author
-    ):
+    def test_views_subscriptions_user_can_follow(self):
+        """Тестирование возможности подписаться на автора."""
+        all_followers = Follow.objects.count()
+        response = self.authorized_client1.get(self.url_follow2)
         with self.subTest(response=response):
-            self.assertRedirects(response, f'/profile/{author}/')
-            self.assertEqual(self.user1.follower.count(), user1_followers)
-            self.assertEqual(self.user1.following.count(), user1_followings)
-            self.assertEqual(self.user2.follower.count(), user2_followers)
-            self.assertEqual(self.user2.following.count(), user2_followings)
-            self.assertEqual(self.user3.follower.count(), user3_followers)
-            self.assertEqual(self.user3.following.count(), user3_followings)
+            self.assertRedirects(response, f'/profile/{self.post_author}/')
+            self.assertEqual(Follow.objects.count(), all_followers + 1)
+            self.assertTrue(self.post_author.following.values().filter(
+                user_id=self.subscriber.id
+            ).exists())
+            self.assertTrue(self.subscriber.follower.values().filter(
+                author_id=self.post_author.id
+            ).exists())
+            self.assertFalse(self.other_user.follower.values().filter(
+                author_id=self.post_author.id
+            ).exists())
+            self.assertFalse(self.other_user.following.values().filter(
+                user_id=self.subscriber.id
+            ).exists())
 
-    def test_views_subscriptions_users_can_follow_unfollow(self):
-        """Проверка корректной работы подиски / отписки."""
-        user1_followers = self.user1.follower.count()
-        user1_followings = self.user1.following.count()
-        user2_followers = self.user2.follower.count()
-        user2_followings = self.user2.following.count()
-        user3_followers = self.user3.follower.count()
-        user3_followings = self.user3.following.count()
-        # Первый user подписывается на второго.
+    def test_views_subscriptions_user_cant_self_follow(self):
+        """Тестирование невозможности подписаться на самого себя."""
+        all_followers = Follow.objects.count()
+        response = self.authorized_client2.get(self.url_follow2)
+        with self.subTest(response=response):
+            self.assertRedirects(response, f'/profile/{self.post_author}/')
+            self.assertEqual(Follow.objects.count(), all_followers)
+
+    def test_views_subscriptions_user_cant_follow_twice(self):
+        """Тестирование невозможности двойной подписки."""
+        Follow.objects.create(
+            user=self.subscriber,
+            author=self.post_author,
+        )
+        num_followers = Follow.objects.count()
         response = self.authorized_client1.get(self.url_follow2)
-        author = self.user2.username
-        user1_followers += 1
-        user2_followings += 1
-        self.check_subscriptions(
-            response, user1_followers, user1_followings,
-            user2_followers, user2_followings, user3_followers,
-            user3_followings, author
+        with self.subTest(response=response):
+            self.assertRedirects(response, f'/profile/{self.post_author}/')
+            self.assertEqual(Follow.objects.count(), num_followers)
+
+    def test_views_subscriptions_user_can_unfollow(self):
+        """Тестирование возможности отписаться от автора."""
+        Follow.objects.create(
+            user=self.subscriber,
+            author=self.post_author,
         )
-        # Первый user подписывается на самого себя - нет изменений.
-        response = self.authorized_client1.get(self.url_follow1)
-        author = self.user1.username
-        self.check_subscriptions(
-            response, user1_followers, user1_followings,
-            user2_followers, user2_followings, user3_followers,
-            user3_followings, author
-        )
-        # Первый user повторно подписывается на второго - нет изменений.
-        response = self.authorized_client1.get(self.url_follow2)
-        author = self.user2.username
-        self.check_subscriptions(
-            response, user1_followers, user1_followings,
-            user2_followers, user2_followings, user3_followers,
-            user3_followings, author
-        )
-        # Второй user подписывается на первого.
-        response = self.authorized_client2.get(self.url_follow1)
-        author = self.user1.username
-        user1_followings += 1
-        user2_followers += 1
-        self.check_subscriptions(
-            response, user1_followers, user1_followings,
-            user2_followers, user2_followings, user3_followers,
-            user3_followings, author
-        )
-        # Второй user подписывается на третьего.
-        response = self.authorized_client2.get(self.url_follow3)
-        author = self.user3.username
-        user2_followers += 1
-        user3_followings += 1
-        self.check_subscriptions(
-            response, user1_followers, user1_followings,
-            user2_followers, user2_followings, user3_followers,
-            user3_followings, author
-        )
-        # Второй user отписывается от первого.
-        response = self.authorized_client2.get(self.url_unfollow1)
-        author = self.user1.username
-        user1_followings -= 1
-        user2_followers -= 1
-        self.check_subscriptions(
-            response, user1_followers, user1_followings,
-            user2_followers, user2_followings, user3_followers,
-            user3_followings, author
-        )
-        # Второй user повторно отписывается от первого - нет изменений.
-        response = self.authorized_client2.get(self.url_unfollow1)
-        author = self.user1.username
-        self.check_subscriptions(
-            response, user1_followers, user1_followings,
-            user2_followers, user2_followings, user3_followers,
-            user3_followings, author
-        )
-        # Второй user отписывается от самого себя - нет изменений.
-        response = self.authorized_client2.get(self.url_unfollow2)
-        author = self.user2.username
-        self.check_subscriptions(
-            response, user1_followers, user1_followings,
-            user2_followers, user2_followings, user3_followers,
-            user3_followings, author
-        )
+        num_followers = Follow.objects.count()
+        response = self.authorized_client1.get(self.url_unfollow2)
+        with self.subTest(response=response):
+            self.assertRedirects(response, f'/profile/{self.post_author}/')
+            self.assertEqual(Follow.objects.count(), num_followers - 1)
+            self.assertFalse(self.post_author.following.values().filter(
+                user_id=self.subscriber.id
+            ).exists())
+            self.assertFalse(self.subscriber.follower.values().filter(
+                author_id=self.post_author.id
+            ).exists())
+
+    def test_views_subscriptions_user_cant_unfollow_twice(self):
+        """Тестирование невозможности повторно отписаться от автора."""
+        num_followers = Follow.objects.count()
+        response = self.authorized_client1.get(self.url_unfollow2)
+        with self.subTest(response=response):
+            self.assertRedirects(response, f'/profile/{self.post_author}/')
+            self.assertEqual(Follow.objects.count(), num_followers)
 
     def test_views_post_in_follow_list_of_subscribers(self):
-        self.authorized_client2.get(self.url_follow1)
-        self.authorized_client3.get(self.url_follow2)
-        response = self.authorized_client2.get(reverse('posts:follow_index'))
+        """Тестирование появления поста в ленте подписчика."""
+        Follow.objects.create(
+            user=self.subscriber,
+            author=self.post_author,
+        )
+        test_data = {
+            'text': 'Пост автора',
+            'group': '',
+            'image': '',
+        }
+        self.authorized_client2.post(
+            reverse('posts:post_create'),
+            data=test_data,
+        )
+        post = self.post_author.post.latest('id')
+        response = self.authorized_client1.get(reverse('posts:follow_index'))
         page = response.context['page_obj']
-        self.assertIn(self.post, page)
-        self.assertNotIn(self.post2, page)
+        with self.subTest(response=response):
+            self.assertIn(post, page)
+
+    def test_views_post_not_in_follow_list_of_nonsubscriber(self):
+        """Тестирование отсутствия поста в ленте не подписанного на автора."""
+        Follow.objects.create(
+            user=self.subscriber,
+            author=self.post_author,
+        )
+        test_data = {
+            'text': 'Пост автора',
+            'group': '',
+            'image': '',
+        }
+        self.authorized_client2.post(
+            reverse('posts:post_create'),
+            data=test_data,
+        )
+        post = self.post_author.post.latest('id')
         response = self.authorized_client3.get(reverse('posts:follow_index'))
         page = response.context['page_obj']
         with self.subTest(response=response):
-            self.assertNotIn(self.post, page)
-            self.assertIn(self.post2, page)
+            self.assertNotIn(post, page)

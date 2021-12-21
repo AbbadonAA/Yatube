@@ -2,15 +2,15 @@ from http import HTTPStatus
 
 from django.test import Client, TestCase
 
-from ..models import Group, Post, User
+from ..models import Comment, Group, Post, User
 
 
 class PostsURLTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='Test User')
-        cls.user_author = User.objects.create_user(username='Post Author')
+        cls.user = User.objects.create_user(username='Test_User')
+        cls.user_author = User.objects.create_user(username='Post_Author')
         cls.group = Group.objects.create(
             title='Заголовок тестовой группы',
             slug='100',
@@ -20,6 +20,11 @@ class PostsURLTests(TestCase):
             author=cls.user_author,
             text='Тестовый текст поста',
             group=cls.group,
+        )
+        cls.comment = Comment.objects.create(
+            post=cls.post,
+            author=cls.user,
+            text='Комментарий для теста',
         )
 
     def setUp(self):
@@ -38,6 +43,13 @@ class PostsURLTests(TestCase):
             f'/posts/{self.post.id}/edit/': ('posts/create_post.html',
                                              'author'),
             '/unexisting_page/': (None, '404'),
+        }
+        self.urls_redirects = {
+            f'/posts/{self.post.id}/comment/': f'/posts/{self.post.id}/',
+            f'/profile/{self.user.username}/follow/':
+            f'/profile/{self.user.username}/',
+            f'/profile/{self.user.username}/unfollow/':
+            f'/profile/{self.user.username}/',
         }
 
     def check_access(self, url_templates):
@@ -101,3 +113,11 @@ class PostsURLTests(TestCase):
     def test_url_template_accessibility(self):
         """Тестирование URLS - доступность страниц posts и шаблонов."""
         self.check_access(self.url_templates)
+
+    def test_urls_follow(self):
+        for url, redirect in self.urls_redirects.items():
+            response = self.authorized_client.get(url)
+            self.assertEqual(response.status_code, HTTPStatus.FOUND)
+            self.assertRedirects(response, redirect)
+            response = self.guest_client.get(url)
+            self.assertEqual(response.status_code, HTTPStatus.FOUND)
