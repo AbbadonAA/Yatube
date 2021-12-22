@@ -290,9 +290,8 @@ class SubscriptionsViewsTests(TestCase):
         """Тестирование невозможности подписаться на самого себя."""
         all_followers = Follow.objects.count()
         response = self.authorized_client2.get(self.url_follow2)
-        with self.subTest(response=response):
-            self.assertRedirects(response, f'/profile/{self.post_author}/')
-            self.assertEqual(Follow.objects.count(), all_followers)
+        self.assertRedirects(response, f'/profile/{self.post_author}/')
+        self.assertEqual(Follow.objects.count(), all_followers)
 
     def test_views_subscriptions_user_cant_follow_twice(self):
         """Тестирование невозможности двойной подписки."""
@@ -302,9 +301,8 @@ class SubscriptionsViewsTests(TestCase):
         )
         num_followers = Follow.objects.count()
         response = self.authorized_client1.get(self.url_follow2)
-        with self.subTest(response=response):
-            self.assertRedirects(response, f'/profile/{self.post_author}/')
-            self.assertEqual(Follow.objects.count(), num_followers)
+        self.assertRedirects(response, f'/profile/{self.post_author}/')
+        self.assertEqual(Follow.objects.count(), num_followers)
 
     def test_views_subscriptions_user_can_unfollow(self):
         """Тестирование возможности отписаться от автора."""
@@ -328,9 +326,8 @@ class SubscriptionsViewsTests(TestCase):
         """Тестирование невозможности повторно отписаться от автора."""
         num_followers = Follow.objects.count()
         response = self.authorized_client1.get(self.url_unfollow2)
-        with self.subTest(response=response):
-            self.assertRedirects(response, f'/profile/{self.post_author}/')
-            self.assertEqual(Follow.objects.count(), num_followers)
+        self.assertRedirects(response, f'/profile/{self.post_author}/')
+        self.assertEqual(Follow.objects.count(), num_followers)
 
     def test_views_post_in_follow_list_of_subscribers(self):
         """Тестирование появления поста в ленте подписчика."""
@@ -350,8 +347,7 @@ class SubscriptionsViewsTests(TestCase):
         post = self.post_author.post.latest('id')
         response = self.authorized_client1.get(reverse('posts:follow_index'))
         page = response.context['page_obj']
-        with self.subTest(response=response):
-            self.assertIn(post, page)
+        self.assertIn(post, page)
 
     def test_views_post_not_in_follow_list_of_nonsubscriber(self):
         """Тестирование отсутствия поста в ленте не подписанного на автора."""
@@ -371,5 +367,4 @@ class SubscriptionsViewsTests(TestCase):
         post = self.post_author.post.latest('id')
         response = self.authorized_client3.get(reverse('posts:follow_index'))
         page = response.context['page_obj']
-        with self.subTest(response=response):
-            self.assertNotIn(post, page)
+        self.assertNotIn(post, page)
