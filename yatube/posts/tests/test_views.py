@@ -213,15 +213,14 @@ class PaginatorViewsTests(TestCase):
             page_count += 1
 
         def check_paginator(response):
-            with self.subTest(reverse_name=reverse_name):
-                self.assertEqual(len(
-                    response.context.get('page_obj').object_list),
-                    post_count
-                )
-                self.assertEqual(
-                    response.context.get('page_obj').paginator.num_pages,
-                    page_count
-                )
+            self.assertEqual(len(
+                response.context.get('page_obj').object_list),
+                post_count
+            )
+            self.assertEqual(
+                response.context.get('page_obj').paginator.num_pages,
+                page_count
+            )
         for reverse_name in self.names_templates.keys():
             if Post.objects.count() >= 10:
                 response = self.client.get(
@@ -254,6 +253,10 @@ class SubscriptionsViewsTests(TestCase):
         self.authorized_client1.force_login(self.subscriber)
         self.authorized_client2.force_login(self.post_author)
         self.authorized_client3.force_login(self.other_user)
+        self.redirect = reverse(
+            'posts:profile',
+            kwargs={'username': self.post_author.username}
+        )
         self.url_follow2 = reverse(
             'posts:profile_follow',
             kwargs={'username': self.post_author.username}
@@ -270,27 +273,26 @@ class SubscriptionsViewsTests(TestCase):
         """Тестирование возможности подписаться на автора."""
         all_followers = Follow.objects.count()
         response = self.authorized_client1.get(self.url_follow2)
-        with self.subTest(response=response):
-            self.assertRedirects(response, f'/profile/{self.post_author}/')
-            self.assertEqual(Follow.objects.count(), all_followers + 1)
-            self.assertTrue(self.post_author.following.values().filter(
-                user_id=self.subscriber.id
-            ).exists())
-            self.assertTrue(self.subscriber.follower.values().filter(
-                author_id=self.post_author.id
-            ).exists())
-            self.assertFalse(self.other_user.follower.values().filter(
-                author_id=self.post_author.id
-            ).exists())
-            self.assertFalse(self.other_user.following.values().filter(
-                user_id=self.subscriber.id
-            ).exists())
+        self.assertRedirects(response, self.redirect)
+        self.assertEqual(Follow.objects.count(), all_followers + 1)
+        self.assertTrue(self.post_author.following.values().filter(
+            user_id=self.subscriber.id
+        ).exists())
+        self.assertTrue(self.subscriber.follower.values().filter(
+            author_id=self.post_author.id
+        ).exists())
+        self.assertFalse(self.other_user.follower.values().filter(
+            author_id=self.post_author.id
+        ).exists())
+        self.assertFalse(self.other_user.following.values().filter(
+            user_id=self.subscriber.id
+        ).exists())
 
     def test_views_subscriptions_user_cant_self_follow(self):
         """Тестирование невозможности подписаться на самого себя."""
         all_followers = Follow.objects.count()
         response = self.authorized_client2.get(self.url_follow2)
-        self.assertRedirects(response, f'/profile/{self.post_author}/')
+        self.assertRedirects(response, self.redirect)
         self.assertEqual(Follow.objects.count(), all_followers)
 
     def test_views_subscriptions_user_cant_follow_twice(self):
@@ -301,7 +303,7 @@ class SubscriptionsViewsTests(TestCase):
         )
         num_followers = Follow.objects.count()
         response = self.authorized_client1.get(self.url_follow2)
-        self.assertRedirects(response, f'/profile/{self.post_author}/')
+        self.assertRedirects(response, self.redirect)
         self.assertEqual(Follow.objects.count(), num_followers)
 
     def test_views_subscriptions_user_can_unfollow(self):
@@ -312,21 +314,20 @@ class SubscriptionsViewsTests(TestCase):
         )
         num_followers = Follow.objects.count()
         response = self.authorized_client1.get(self.url_unfollow2)
-        with self.subTest(response=response):
-            self.assertRedirects(response, f'/profile/{self.post_author}/')
-            self.assertEqual(Follow.objects.count(), num_followers - 1)
-            self.assertFalse(self.post_author.following.values().filter(
-                user_id=self.subscriber.id
-            ).exists())
-            self.assertFalse(self.subscriber.follower.values().filter(
-                author_id=self.post_author.id
-            ).exists())
+        self.assertRedirects(response, self.redirect)
+        self.assertEqual(Follow.objects.count(), num_followers - 1)
+        self.assertFalse(self.post_author.following.values().filter(
+            user_id=self.subscriber.id
+        ).exists())
+        self.assertFalse(self.subscriber.follower.values().filter(
+            author_id=self.post_author.id
+        ).exists())
 
     def test_views_subscriptions_user_cant_unfollow_twice(self):
         """Тестирование невозможности повторно отписаться от автора."""
         num_followers = Follow.objects.count()
         response = self.authorized_client1.get(self.url_unfollow2)
-        self.assertRedirects(response, f'/profile/{self.post_author}/')
+        self.assertRedirects(response, self.redirect)
         self.assertEqual(Follow.objects.count(), num_followers)
 
     def test_views_post_in_follow_list_of_subscribers(self):
